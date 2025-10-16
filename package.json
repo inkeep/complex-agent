@@ -1,0 +1,44 @@
+{
+	"name": "inkeep-agents-quickstart",
+	"version": "0.1.0",
+	"description": "An Inkeep Agent Framework directory",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "concurrently \"turbo dev --filter manage-api-quickstart --filter run-api-quickstart --filter mcp-quickstart\" \"inkeep dev\" \"wait-on http://localhost:3000 && open-cli http://localhost:3000\" --names \"APIs,UI,Browser\" --prefix-colors \"blue,green,yellow\" --success first",
+		"dev:apis": "turbo dev --filter manage-api-quickstart --filter run-api-quickstart",
+		"dev:ui": "inkeep dev",
+		"dev:mcp": "turbo dev --filter mcp-quickstart",
+		"db:migrate": "drizzle-kit migrate",
+		"upgrade-agents": "node scripts/upgrade.js",
+		"postinstall": "node scripts/postinstall.js"
+	},
+	"dependencies": {
+		"@inkeep/agents-core": "^0.22.6",
+		"@inkeep/agents-manage-ui": "^0.22.6",
+		"@inkeep/agents-sdk": "^0.22.6",
+		"@tailwindcss/vite": "^4.1.14",
+		"dotenv": "^16.0.0",
+		"tailwindcss": "^4.1.14",
+		"zod": "^4.1.5"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.8.0",
+		"@inkeep/agents-cli": "^0.22.6",
+		"concurrently": "^8.2.0",
+		"drizzle-kit": "^0.31.4",
+		"open-cli": "^8.0.0",
+		"tsx": "^4.19.0",
+		"turbo": "^2.5.5",
+		"wait-on": "^8.0.0"
+	},
+	"engines": {
+		"node": ">=22.x"
+	},
+	"packageManager": "pnpm@10.10.0",
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"keytar"
+		]
+	}
+}
