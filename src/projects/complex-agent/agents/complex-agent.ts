@@ -2,14 +2,19 @@ import { z } from "zod";
 import {
   subAgent,
   agent,
-  agentMcp,
   dataComponent,
   functionTool,
+  externalAgent,
+  statusComponent,
 } from "@inkeep/agents-sdk";
 import { contextConfig, fetchDefinition, headers } from "@inkeep/agents-core";
 import { weatherMcpTool } from "../tools/weather-mcp.ts";
 import { artifactComponent } from "@inkeep/agents-sdk";
 import { preview } from "@inkeep/agents-core";
+import { teamAgent } from "./team-agent.ts";
+import { stripeMcpTool } from "../tools/stripe-mcp.ts";
+
+// - Complex graph: team agent, external agent, new syntax for selecting tools, context config, headers, stop when, status components, environment aware credentials, env aware MCPs
 
 const calculateBMI = functionTool({
   name: "calculate-bmi",
@@ -116,6 +121,36 @@ const personalAgentContext = contextConfig({
   },
 });
 
+const toolSummary = statusComponent({
+  type: "tool_summary",
+  description: "Summary of tool calls and their purpose",
+  detailsSchema: z.object({
+    tool_name: z.string().describe("Name of tool used"),
+    purpose: z.string().describe("Why this tool was called"),
+    outcome: z.string().describe("What was discovered or accomplished"),
+  }),
+});
+
+const progressUpdate = statusComponent({
+  type: "progress_update",
+  description: "Progress information with metrics",
+  detailsSchema: z.object({
+    current_step: z.string(),
+    items_processed: z.number().optional(),
+    status: z.enum(["in_progress", "completed", "pending"]),
+  }),
+});
+
+const myExternalAgent = externalAgent({
+  // Required
+  id: "external-support-agent",
+  name: "External Support Agent", // Human-readable agent name
+  description: "External AI agent for specialized support", // Agent's purpose
+  baseUrl: "https://api.example.com/agents/support", // A2A endpoint URL
+  // Optional - Credential Reference
+  // credentialReference: myCredentialReference,
+});
+
 // 4. Create and use the Sub Agent
 const personalAssistant = subAgent({
   id: "personal-assistant",
@@ -126,14 +161,21 @@ const personalAssistant = subAgent({
   )}! I'm your personal assistant.`,
   canUse: () => [
     calculateBMI,
-    agentMcp({
-      server: weatherMcpTool,
+    weatherMcpTool.with({
       selectedTools: ["get_weather_forecast"],
+      headers: { authorization: "my-api-key" },
     }),
   ],
-  canDelegateTo: () => [coordinatesAgent],
+  canDelegateTo: () => [
+    coordinatesAgent,
+    teamAgent.with({ headers: { authorization: "my-api-key" } }),
+    myExternalAgent.with({ headers: { authorization: "my-api-key" } }),
+  ],
   dataComponents: () => [taskList],
   artifactComponents: () => [citation],
+  stopWhen: {
+    stepCountIs: 20, // Max tool calls + LLM responses
+  },
 });
 
 const coordinatesAgent = subAgent({
@@ -143,10 +185,11 @@ const coordinatesAgent = subAgent({
   prompt:
     "You are a helpful assistant that gets the coordinates of a given location",
   canUse: () => [
-    agentMcp({
-      server: weatherMcpTool,
+    weatherMcpTool.with({
       selectedTools: ["get_coordinates"],
+      headers: { authorization: "my-api-key" },
     }),
+    stripeMcpTool
   ],
 });
 
@@ -157,4 +200,12 @@ export const complexAgent = agent({
   defaultSubAgent: personalAssistant,
   subAgents: () => [personalAssistant, coordinatesAgent],
   contextConfig: personalAgentContext,
+  stopWhen: {
+    transferCountIs: 5, // Max transfers in one conversation
+  },
+  statusUpdates: {
+    numEvents: 3,
+    timeInSeconds: 15,
+    statusComponents: [toolSummary.config, progressUpdate.config],
+  },
 });

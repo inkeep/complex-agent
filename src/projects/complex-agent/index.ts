@@ -1,11 +1,12 @@
 import { complexAgent } from "./agents/complex-agent.ts";
 import { project } from "@inkeep/agents-sdk";
+import { teamAgent } from "./agents/team-agent.ts";
 
 export const myProject = project({
   id: "complex-example",
   name: "Complex Example",
   description: "Complex example project",
-  agents: () => [complexAgent],
+  agents: () => [complexAgent, teamAgent],
   models: {
     base: {
       model: "anthropic/claude-sonnet-4-20250514",
