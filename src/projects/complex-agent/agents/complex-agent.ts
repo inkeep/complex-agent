@@ -120,7 +120,7 @@ const personalAgentContext = contextConfig({
 const personalAssistant = subAgent({
   id: "personal-assistant",
   name: "Personal Assistant",
-  description: "A personalized AI assistant",
+  description: "A personalized AI assistant.",
   prompt: `Hello ${personalAgentContext.toTemplate(
     "user.name"
   )}! I'm your personal assistant.`,
